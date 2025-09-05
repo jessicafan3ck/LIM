@@ -1,31 +1,53 @@
-A) Player kinematics & physiology
-Inputs available:
+### A) Player kinematics & physiology
+#### Inputs available:
 Physicals: Max Speed (km/h), # Sprints, # Speed Runs, Total Duration (min)
+
 Events: timestamps (match_run_time_in_ms, event_end_time_in_ms), event, event_type, pressure, positions (x_location_*, y_location_*), to_player_*, team_name, from_player_*
+
 We need to synthesize: v_i_max, a_i_max, d_i_max, tau_i_react, tau_i_turn, f_i(t) (+ GK extras)
-v_i_max (cap)
+
+##### v_i_max (cap)
 From physicals: v_i_max = Max Speed (km/h) / 3.6 (m/s).
+
 If missing: team median of available players; fallback 8.6 m/s.
-a_i_max, d_i_max (caps, tied to physicals)
+
+##### a_i_max, d_i_max (caps, tied to physicals)
 Estimate time to 85% top speed from sprint count proxy:
+
 t85_i = clamp(2.2 − 0.01 * (# Sprints), 1.6, 2.2) [s]
+
 a_i_max = 0.85 * v_i_max / t85_i
+
 d_i_max = 1.25 * a_i_max (braking > accel).
+
 Clamp biomechanically: a_i_max ≤ 6.5 m/s², d_i_max ≤ 8.0 m/s².
-tau_i_react, tau_i_turn (base latencies)
+
+##### tau_i_react, tau_i_turn (base latencies)
 Use role-agnostic bases: tau_i_react, tau_i_turn ∈ [0.20, 0.40] s.
+
 Personalize by speed endurance proxy: scale down (faster) with more sprints:
+
 tau_i_react = 0.26 − 0.002 * min(20, # Sprints) → clamp [0.18, 0.30]
+
 tau_i_turn = 0.34 − 0.002 * min(20, # Sprints) → clamp [0.26, 0.40]
+
 If goalkeepers detected (see GK below), add +0.02–0.04 s.
-f_i(t) (fatigue multiplier, event-driven two-reservoir)
+
+##### f_i(t) (fatigue multiplier, event-driven two-reservoir)
 Maintain F_fast, F_slow ∈ [0,1] with exponential recovery between events.
+
 Burst detection (I_burst) from events only:
+
 CARRY: use start→end displacement d (m): bins 4/8/12 m → intensities 0.3/0.6/1.0.
+
 PRESS/DEFENSE: if pressure==True on opponent ball-carrier within 6 s of turnover, add 0.4–0.8 based on closed distance (from positions).
+
 QUICK CHAINS: same player acts ≥2 times within 5 s → +0.3.
+
 I_burst_long = rolling sum over 30 s, normalized to [0,1].
+
 Contact proxy (C) from event/event_type text & tags: regex on event for {FOUL, TACKLE, AERIAL, DUEL, COLLISION}, or body_type includes Header, or opponent opposition_touch around our action → map to {0.2, 0.4, 0.7}.
+
 Updates at event time t_k:
 F_fast ← clip(F_fast − α_burst·I_burst − α_contact·C, 0,1)
 F_slow ← clip(F_slow − β_burst·I_burst_long − β_contact·C, 0,1)
