@@ -1,5 +1,6 @@
 # LIM MVP (Living Influence Model) - README
 Please view 'LIM_Theory_Paper.pdf' and 'LIM_Simulation_Analytics.pdf' for insights on the theory and framework behind this proposed model.
+
 A minimal, events-only implementation of the Living Influence Model (LIM) suitable for a coach-facing demo using FIFA Unified Event Data and a per‑player Physical Summary for the U17 Women's World Cup. Any quantities not present in the dataset are synthetically instantiated via stable, interpretable defaults so the pipeline is fully runnable end‑to‑end without tracking data. The logic and generation process for all synthetic data will be provided within this repository. The model in this repository is ran on 31 matches from the U17 Women's World Cup. 
 
 ## LIM Data
