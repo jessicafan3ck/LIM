@@ -1,18 +1,11 @@
 A) Player kinematics & physiology
-
 Inputs available:
-
-  Physicals: Max Speed (km/h), # Sprints, # Speed Runs, Total Duration (min)
-
-  Events: timestamps (match_run_time_in_ms, event_end_time_in_ms), event, event_type, pressure, positions (x_location_*, y_location_*), to_player_*,   team_name, from_player_*
-
+Physicals: Max Speed (km/h), # Sprints, # Speed Runs, Total Duration (min)
+Events: timestamps (match_run_time_in_ms, event_end_time_in_ms), event, event_type, pressure, positions (x_location_*, y_location_*), to_player_*, team_name, from_player_*
 We need to synthesize: v_i_max, a_i_max, d_i_max, tau_i_react, tau_i_turn, f_i(t) (+ GK extras)
 v_i_max (cap)
-
 From physicals: v_i_max = Max Speed (km/h) / 3.6 (m/s).
-
 If missing: team median of available players; fallback 8.6 m/s.
-
 a_i_max, d_i_max (caps, tied to physicals)
 Estimate time to 85% top speed from sprint count proxy:
 t85_i = clamp(2.2 − 0.01 * (# Sprints), 1.6, 2.2) [s]
