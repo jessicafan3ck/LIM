@@ -1,4 +1,4 @@
-# high-level goal
+# High-Level Goal
 
 Given:
 
@@ -16,7 +16,7 @@ All outputs keep keys (`match_id`, `event_id`, `from_player_id`, `from_player_na
 
 ---
 
-# imports & types
+# Imports & Types
 
 ```python
 import os, re, glob
@@ -36,7 +36,7 @@ import pandas as pd
 
 ---
 
-# dataclasses (state containers)
+# Dataclasses (State Containers)
 
 ## `PhysParams`
 
@@ -73,7 +73,7 @@ class FatigueState:
 
 ---
 
-# model constants (design choices)
+# Model Constants (Design Choices)
 
 ```python
 DEFAULT_V_MAX_MS = 8.6
@@ -98,7 +98,7 @@ BETA_BURST = 0.10
 BETA_CONTACT = 0.20
 ```
 
-* **Event-time decrements** to reservoirs:
+* **Event-Time Decrements** to Reservoirs:
 
   * `F_fast` drops by `ALPHA_BURST*I_burst + ALPHA_CONTACT*C`
   * `F_slow` drops by `BETA_BURST*I_burst_long + BETA_CONTACT*C`
@@ -143,7 +143,7 @@ GK_V_DIVE = 6.0
 
 ---
 
-# column maps (schema adapters)
+# Column Maps (Schema Adapters)
 
 ```python
 COLS = {...}
@@ -155,7 +155,7 @@ PHYS_COLS = {...}
 
 ---
 
-# helpers
+# Helpers
 
 ## `kmh_to_ms(v_kmh)`
 
@@ -176,7 +176,7 @@ t85 = clamp(2.2 - 0.01 * n, 1.6, 2.2)
 
 ---
 
-# deriving base physical parameters per player
+# Deriving Base Physical Parameters Per Player
 
 ## `derive_phys_params(phys_df)`
 
@@ -220,7 +220,7 @@ t85 = clamp(2.2 - 0.01 * n, 1.6, 2.2)
 
 ---
 
-# event tagging: regex and detectors
+# Event Tagging: Regex and Detectors
 
 ## Regular expressions
 
@@ -283,7 +283,7 @@ SAVE_RE    = re.compile(r"(save|goal\s?kick|keeper|gk)", re.IGNORECASE)
 
 ---
 
-# the generator core
+# The Generator Core
 
 ## `generate_synthetic_sidecar(events, phys_df_concat=None) -> DataFrame`
 
@@ -476,7 +476,7 @@ For each `row` in `events_sorted`:
         st["last_time_ms"]   = t_ms
     ```
 
-**After the loop:**
+**After the Loop:**
 
 * Build a DataFrame `sidecar` from `out_rows`.
 * Coerce numeric columns (those starting with `syn_`, ending with `_eff`, `_max`, or starting with `tau_`) to `float`.
@@ -484,7 +484,7 @@ For each `row` in `events_sorted`:
 
 ---
 
-# physicals loading & batch runner
+# Physicals Loading & Batch Runner
 
 ## `load_all_phys(phys_dir)`
 
@@ -521,7 +521,7 @@ if __name__ == "__main__":
 
 ---
 
-# outputs: exact fields & provenance
+# Outputs: Exact Fields & Provenance
 
 For **each event row where a `from_player_*` exists**, the sidecar includes:
 
@@ -564,7 +564,7 @@ For **each event row where a `from_player_*` exists**, the sidecar includes:
 
 ---
 
-# assumptions & edge cases
+# Assumptions & Edge Cases
 
 * **Coordinates**: If any of the x (or y) inputs in a carry have absolute values ≤ 1.2, treat as normalized and scale by (105, 68). Otherwise, assume meters. This allows mixing normalized and metric feeds.
 * **Timing**: If `event_end_time_in_ms` missing, we fall back to `match_run_time_in_ms`, then `match_time_in_ms`. If all missing, event contributes no recovery but still emits a row with current state.
@@ -576,7 +576,7 @@ For **each event row where a `from_player_*` exists**, the sidecar includes:
 
 ---
 
-# why these design choices
+# Why These Design Choices
 
 * **Two-reservoir fatigue**: Captures short-term and long-term load with simple, explainable exponentials.
 * **Event-only burst/contact**: Uses only what’s guaranteed in event feeds (no tracking). Displacement carries, pressure flags, and contact keywords approximate load reasonably for a coach demo.
@@ -586,7 +586,7 @@ For **each event row where a `from_player_*` exists**, the sidecar includes:
 
 ---
 
-# modding cheat-sheet (where to tweak)
+# Modding Cheat-Sheet (Where to Tweak)
 
 * **Fatigue sensitivity**: `ALPHA_*`, `BETA_*` (bigger → drains faster)
 * **Recovery speeds**: `TAU_FAST_BASE`, `TAU_SLOW_BASE`
