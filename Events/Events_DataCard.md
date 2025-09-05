@@ -1,7 +1,7 @@
 ## Events Data Card
-### Source: FIFA Unified Event Data (U17 Women’s World Cup)
-### Granularity: Every on-ball event, frame-aligned to match clock
-### Primary Keys: match_id, event_id
+#### Source: FIFA Unified Event Data (U17 Women’s World Cup)
+#### Granularity: Every on-ball event, frame-aligned to match clock
+#### Primary Keys: match_id, event_id
 
 #### Core Identifiers
   match_id: Unique FIFA identifier for the match
