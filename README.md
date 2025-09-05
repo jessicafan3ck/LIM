@@ -13,6 +13,6 @@ Summaries for the data contents and interpretations for each data type will be c
 
 Synthetic data was generated for each of these variables:
 
-The generated data as well as the generating pipeline for each of these variables is contained in the 'Synthetic' folder. Read 'Synthetic_DataCard.md' for a more granular description of each variable type. Read 'Synthetic_Pipeline.md' or read the comments in each code file to understand the generation process.
+The generated data as well as the generating pipeline for each of these variables is contained in the 'Synthetic' folder. Read 'Synthetic_DataCard.md' for a more granular description of each variable type. Read 'Synthetic_Pipeline.md' or read the comments in the generating code file ('lim_generate_synthetic.py') to understand the generation process.
 
     
