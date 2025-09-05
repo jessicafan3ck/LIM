@@ -41,7 +41,6 @@ def geometric_mean(vals, eps=1e-9):
     vals = np.clip(vals, eps, 1.0)
     return float(np.exp(np.mean(np.log(vals))))
 
-
 # =========================
 # Data schema constants
 # =========================
@@ -149,9 +148,11 @@ class GameState:
 
 def _grid_centers(field: FieldConfig) -> np.ndarray:
     dx, dy = field.cell_size()
+    # X has shape (nx, ny), Y has shape (nx, ny) with indexing='ij'
     xs = (np.arange(field.nx) + 0.5) * dx
     ys = (np.arange(field.ny) + 0.5) * dy
-    g = np.stack(np.meshgrid(xs, ys, indexing="xy"), axis=-1)  # (nx,ny,2)
+    X, Y = np.meshgrid(xs, ys, indexing="ij")
+    g = np.stack([X, Y], axis=-1)  # (nx, ny, 2)
     return g
 
 def fit_ball_model(events: pd.DataFrame) -> BallModel:
@@ -160,8 +161,8 @@ def fit_ball_model(events: pd.DataFrame) -> BallModel:
     is_pass = df["event_type"].str.lower() == "pass"
     sub = df[is_pass].dropna(subset=["x_location_start","y_location_start","x_location_end","y_location_end"])
     if "event_end_time_in_ms" in sub.columns and "match_run_time_in_ms" in sub.columns:
-        t0 = sub["match_run_time_in_ms"].astype("Int64")
-        t1 = sub["event_end_time_in_ms"].astype("Int64")
+        t0 = pd.to_numeric(sub["match_run_time_in_ms"], errors="coerce")
+        t1 = pd.to_numeric(sub["event_end_time_in_ms"], errors="coerce")
         mask = t0.notna() & t1.notna() & (t1 > t0)
         sub = sub[mask].copy()
         if len(sub) >= 20:
@@ -186,6 +187,11 @@ def fit_ball_model(events: pd.DataFrame) -> BallModel:
     return BallModel(kappa_ground=1.3)
 
 def _zone_index(field: FieldConfig, x: float, y: float) -> Tuple[int,int]:
+    # If either coord is NaN/inf, send it to a safe center cell.
+    if not np.isfinite(x) or not np.isfinite(y):
+        ix = field.nx // 2
+        iy = field.ny // 2
+        return ix, iy
     ix = int(clamp(math.floor(x / (field.length_m/field.nx)), 0, field.nx-1))
     iy = int(clamp(math.floor(y / (field.width_m/field.ny)), 0, field.ny-1))
     return ix, iy
@@ -198,6 +204,8 @@ def fit_policy(events: pd.DataFrame, field: FieldConfig) -> PolicyModel:
         try:
             xs, ys = float(r["x_location_start"]), float(r["y_location_start"])
         except Exception:
+            continue
+        if not np.isfinite(xs) or not np.isfinite(ys):
             continue
         ix, iy = _zone_index(field, xs, ys)
         a = str(r.get("event_type","")).lower()
@@ -481,6 +489,8 @@ def _action_geometry(action: str, carrier: PlayerSnapshot, field: FieldConfig, r
     return {"tx":carrier.x,"ty":carrier.y,"dist_m":0.0}
 
 def _ixiy(field: FieldConfig, x: float, y: float) -> Tuple[int,int]:
+    if not np.isfinite(x) or not np.isfinite(y):
+        return field.nx // 2, field.ny // 2
     ix = int(clamp(int(x / (field.length_m/field.nx)), 0, field.nx-1))
     iy = int(clamp(int(y / (field.width_m/field.ny)), 0, field.ny-1))
     return ix, iy
@@ -699,11 +709,22 @@ def construct_state_from_row(row: pd.Series, team_rosters: Dict[str, List[Tuple[
                 tau_turn_eff=float(row.get("tau_i_turn_eff", 0.34)),
                 x=float(x), y=float(y)
             )
-    bx = float(row.get("x_location_start", 52.5))
-    by = float(row.get("y_location_start", 34.0))
-    t_ms = int(row.get("match_run_time_in_ms", row.get("event_end_time_in_ms", 0)) or 0)
+    bx = pd.to_numeric(row.get("x_location_start", np.nan), errors="coerce")
+    by = pd.to_numeric(row.get("y_location_start", np.nan), errors="coerce")
+    bx = float(bx) if pd.notna(bx) else 52.5
+    by = float(by) if pd.notna(by) else 34.0
+    def _safe_int_ms(v, default=0):
+        v = pd.to_numeric(v, errors="coerce")
+        return int(v) if pd.notna(v) else default
+
+    t_ms_val = row.get("match_run_time_in_ms", None)
+    if pd.isna(t_ms_val):
+        t_ms_val = row.get("event_end_time_in_ms", None)
+    t_ms = _safe_int_ms(t_ms_val, default=0)
+    ht = pd.to_numeric(row.get("half_time", 1), errors="coerce")
     half_time = int(row.get("half_time", 1) or 1)
-    carrier_id = int(row.get("from_player_id")) if not pd.isna(row.get("from_player_id")) else None
+    cid = pd.to_numeric(row.get("from_player_id", np.nan), errors="coerce")
+    carrier_id = int(cid) if pd.notna(cid) else None
     gs = GameState(
         t_ms=t_ms, half_time=half_time, ball_xy=(bx,by),
         possession_team=str(row.get("team_name","")) or None,
